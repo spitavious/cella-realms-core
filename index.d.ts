@@ -9,7 +9,7 @@ export function selectVeyraEncounter(level: number, rng: () => number): any;
 export function resolveCombatAction(input: any): any;
 export function createHuntReward(input: any): any;
 export function deriveDurabilityWearIntent(input: any): any;
-export function resolveEquipmentCombatBuild(readModel: any): { enabled: boolean; model: any; snapshot?: any; player?: any };
+export function resolveEquipmentCombatBuild(readModel: any): { enabled: false; model: any } | { enabled: true; model: any; snapshot: any; player: any };
 export function validateCombatStartReadModel(readModel: any): any;
 export function createBuildSnapshotV2(input: any): any;
 export function calculateBaseStats(level: number): Record<string, number>;
