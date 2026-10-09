@@ -1,10 +1,10 @@
 {
   "name": "@cella/realms-core",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Pure executable mechanics for Cella Realms.",
   "main": "index.js",
   "license": "MIT",
   "private": false,
-  "dependencies": { "@cella/realms-content": "git+https://github.com/spitavious/cella-realms-content.git#v1.1.0" },
+  "dependencies": { "@cella/realms-content": "git+https://github.com/spitavious/cella-realms-content.git#v1.1.1" },
   "scripts": { "test": "node --test test/*.test.js" }
 }
