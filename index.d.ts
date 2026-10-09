@@ -1,0 +1,14 @@
+export const INACTIVITY_MS: number;
+export const TRAINING_SWORD: { weaponKey: string; displayName: string; weaponFamily: string; minDamage: number; maxDamage: number; recoveryMs: number };
+export const COMBAT_CONFIG: Record<string, unknown>;
+export const HUNT_ENCOUNTER_CONFIG: Record<string, unknown>;
+export function buildPlayerCombatSnapshot(profile: unknown): any;
+export function createSoloHuntState(input: any): any;
+export function validateCombatState(state: any): any;
+export function selectVeyraEncounter(level: number, rng: () => number): any;
+export function resolveCombatAction(input: any): any;
+export function createHuntReward(input: any): any;
+export function deriveDurabilityWearIntent(input: any): any;
+export function calculateBaseStats(level: number): Record<string, number>;
+export function xpForNextLevel(level: number): number;
+export function applyXp(level: number, xp: number, amount: number): any;
