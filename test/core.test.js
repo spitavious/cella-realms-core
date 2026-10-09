@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const core = require("..");
 function sequence(values) { let index = 0; return () => values[index++] ?? 0; }
+function countingSequence(values) { let index = 0; return { rng: () => { const value = values[index]; index++; return value; }, calls: () => index }; }
 test("base stats, Training Sword, and the 8% miniboss boundary preserve Hunt parity", () => {
   assert.deepEqual(core.calculateBaseStats(1), { hp: 100, power: 10, defense: 8, crit_chance: 5, crit_damage: 150, accuracy: 0, dodge: 5, lifesteal: 0, resistance: 0, potency: 0, luck: 0 });
   assert.equal(core.buildPlayerCombatSnapshot({ realm_level: 1 }).weapon.displayName, "Training Sword");
@@ -24,4 +25,24 @@ test("rewards preserve range, drop, quality, durability, and wear intent contrac
   const reward = core.createHuntReward({ encounter, rng: sequence([0, 0, 0, 0, 0, 0, 0]) });
   assert.equal(reward.xp, 40); assert.equal(reward.credits, 20); assert.equal(reward.scrap, 2); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.durability_current, 70);
   assert.deepEqual(core.deriveDurabilityWearIntent({ action: { type: "basic_attack" }, result: { state: {}, enemyAttack: { hit: true } } }), { weapon: 1, armor: true });
+});
+test("threshold table decisions consume one RNG value each", () => {
+  const cases = [[0, 2], [.1799, 2], [.18, 3], [.3899, 3], [.39, 4], [.6099, 4], [.61, 5], [.7899, 5], [.79, 6], [.9199, 6], [.92, 7], [.9999, 7]];
+  for (const [value, expected] of cases) { const source = countingSequence([value]); assert.equal(core.scrapFor("normal", source.rng), expected); assert.equal(source.calls(), 1); }
+  for (const [value, expected] of [[0, "common"], [.7, "uncommon"], [.95, "rare"]]) { const source = countingSequence([value]); assert.equal(core.rarityFor("normal", source.rng), expected); assert.equal(source.calls(), 1); }
+  for (const [value, expected] of [[0, "poor"], [.07, "standard"], [.6, "fine"], [.85, "pristine"], [.97, "perfect"]]) { const source = countingSequence([value]); assert.equal(core.rollEquipmentInstance({ definition: { itemType: "equipment", subtype: "weapon", durabilityEnabled: false }, rarity: "common", rng: source.rng }).quality, expected); assert.equal(source.calls(), 1); }
+});
+test("reward RNG order is stable for no-drop and durable-equipment outcomes", () => {
+  const encounter = require("@cella/realms-content").getVeyraEncounter("mossback_grazer");
+  const noDrop = countingSequence([0, 0, .18, .02]);
+  assert.equal(core.createHuntReward({ encounter, rng: noDrop.rng }).loot, null); assert.equal(noDrop.calls(), 4);
+  const dropped = countingSequence([0, 0, 0, 0, 0, 0, 0, 0]);
+  const reward = core.createHuntReward({ encounter, rng: dropped.rng }); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.quality, "poor"); assert.equal(reward.loot.durability_current, 70); assert.equal(dropped.calls(), 8);
+});
+test("the raw combat-start model derives V2 data without pre-derived fields", () => {
+  const raw = { profile: { realm_level: 1, build_revision: 0 }, runtimeContent: { equipmentCombatEnabled: true, contentVersion: 2, contentKey: "phase4b_veyra_balance_v1", contentHash: "b28ec2891e3a045225f7ef5a580bf3c067516458973724ce7aee9850cc3efaf8" }, equipment: [], templates: [{ item_key: "veyra_verdant_edge" }] };
+  assert.deepEqual(Object.keys(raw).sort(), ["equipment", "profile", "runtimeContent", "templates"]);
+  const build = core.resolveEquipmentCombatBuild(raw);
+  assert.equal(build.enabled, true); assert.equal(build.model.profile.build_revision, 0); assert.equal(build.snapshot.sourceBuildRevision, "0"); assert.equal(build.player.weapon.weaponKey, "training_sword"); assert.equal(build.model.fingerprint.canonical, "[]"); assert.equal(build.model.stateFingerprint.canonical, "[]");
+  assert.throws(() => core.resolveEquipmentCombatBuild({ ...raw, profile: { realm_level: 1, build_revision: -1 } }), (error) => error.code === "COMBAT_EQUIPMENT_CONTENT_INVALID");
 });
