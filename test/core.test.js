@@ -32,9 +32,17 @@ test("threshold table decisions consume one RNG value each", () => {
   for (const [value, expected] of [[0, "common"], [.7, "uncommon"], [.95, "rare"]]) { const source = countingSequence([value]); assert.equal(core.rarityFor("normal", source.rng), expected); assert.equal(source.calls(), 1); }
   for (const [value, expected] of [[0, "poor"], [.07, "standard"], [.6, "fine"], [.85, "pristine"], [.97, "perfect"]]) { const source = countingSequence([value]); assert.equal(core.rollEquipmentInstance({ definition: { itemType: "equipment", subtype: "weapon", durabilityEnabled: false }, rarity: "common", rng: source.rng }).quality, expected); assert.equal(source.calls(), 1); }
 });
+test("equipment outcomes use the approved one-roll drop-rate boundaries", () => {
+  assert.equal(core.HUNT_LOOT_CONFIG.normalDropUpperExclusive, .12);
+  assert.deepEqual(core.HUNT_LOOT_CONFIG.minibossOutcomes, { armorUpperExclusive: .25, weaponUpperExclusive: .35 });
+  for (const [value, expected] of [[0, "any"], [.119999, "any"], [.12, null]]) { const source = countingSequence([value]); assert.equal(core.equipmentOutcome("normal", source.rng), expected); assert.equal(source.calls(), 1); }
+  for (const [value, expected] of [[0, "armor"], [.249999, "armor"], [.25, "weapon"], [.349999, "weapon"], [.35, null]]) { const source = countingSequence([value]); assert.equal(core.equipmentOutcome("miniboss", source.rng), expected); assert.equal(source.calls(), 1); }
+  assert.deepEqual(core.HUNT_LOOT_CONFIG.normalRarity, [{ rarity: "common", upperExclusive: .70 }, { rarity: "uncommon", upperExclusive: .95 }, { rarity: "rare", upperExclusive: 1 }]);
+  assert.deepEqual(core.HUNT_LOOT_CONFIG.minibossRarity, [{ rarity: "common", upperExclusive: .35 }, { rarity: "uncommon", upperExclusive: .80 }, { rarity: "rare", upperExclusive: .98 }, { rarity: "epic", upperExclusive: 1 }]);
+});
 test("reward RNG order is stable for no-drop and durable-equipment outcomes", () => {
   const encounter = require("@cella/realms-content").getVeyraEncounter("mossback_grazer");
-  const noDrop = countingSequence([0, 0, .18, .02]);
+  const noDrop = countingSequence([0, 0, .18, .12]);
   assert.equal(core.createHuntReward({ encounter, rng: noDrop.rng }).loot, null); assert.equal(noDrop.calls(), 4);
   const dropped = countingSequence([0, 0, 0, 0, 0, 0, 0, 0]);
   const reward = core.createHuntReward({ encounter, rng: dropped.rng }); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.quality, "poor"); assert.equal(reward.loot.durability_current, 70); assert.equal(dropped.calls(), 8);
