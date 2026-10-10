@@ -12,6 +12,7 @@ export function deriveDurabilityWearIntent(input: any): any;
 export function resolveEquipmentCombatBuild(readModel: any): { enabled: false; model: any } | { enabled: true; model: any; snapshot: any; player: any };
 export function resolveClassBuild(input: any): any;
 export function resolveEquipmentCombatBuildV3(readModel: any): { enabled: true; model: any; snapshot: any; player: any };
+export function validateBuildSnapshotV3(snapshot: any): any;
 export function validateCombatStartReadModel(readModel: any): any;
 export function createBuildSnapshotV2(input: any): any;
 export function calculateBaseStats(level: number): Record<string, number>;
