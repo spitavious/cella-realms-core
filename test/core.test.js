@@ -47,6 +47,17 @@ test("reward RNG order is stable for no-drop and durable-equipment outcomes", ()
   const dropped = countingSequence([0, 0, 0, 0, 0, 0, 0, 0]);
   const reward = core.createHuntReward({ encounter, rng: dropped.rng }); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.quality, "poor"); assert.equal(reward.loot.durability_current, 70); assert.equal(dropped.calls(), 8);
 });
+test("victory XP bonuses reward stronger foes deterministically without changing reward RNG", () => {
+  const cases = [[4, 100], [5, 100], [6, 110], [7, 120], [8, 130], [9, 140], [10, 150], [15, 150]];
+  for (const [enemyLevel, finalXp] of cases) assert.equal(core.applyVictoryLevelXpBonus({ baseXp: 100, playerLevel: 5, enemyLevel }).finalXp, finalXp);
+  assert.deepEqual(core.applyVictoryLevelXpBonus({ baseXp: 65, playerLevel: 5, enemyLevel: 7 }), { baseXp: 65, bonusXp: 13, finalXp: 78, levelDifference: 2, multiplier: 1.2 });
+  assert.deepEqual(core.applyVictoryLevelXpBonus({ baseXp: 95, playerLevel: 5, enemyLevel: 6 }), { baseXp: 95, bonusXp: 9, finalXp: 104, levelDifference: 1, multiplier: 1.1 });
+  assert.deepEqual(core.getVictoryLevelXpMultiplier({ playerLevel: 5, enemyLevel: 15 }), { levelDifference: 5, multiplier: 1.5 });
+  const encounter = require("@cella/realms-content").getVeyraEncounter("mossback_grazer");
+  const source = countingSequence([0, 0, .18, .12]);
+  const baseReward = core.createHuntReward({ encounter, rng: source.rng });
+  assert.equal(source.calls(), 4); assert.equal(core.applyVictoryLevelXpBonus({ baseXp: baseReward.xp, playerLevel: 5, enemyLevel: 7 }).finalXp, 52); assert.equal(source.calls(), 4);
+});
 test("defeat Hunt XP uses only one victory-XP roll and never creates other rewards", () => {
   const content = require("@cella/realms-content");
   const expectations = { mossback_grazer: [11, 26], briar_matron: [24, 34], old_ironroot: [31, 42], warder_khelt: [38, 51] };
