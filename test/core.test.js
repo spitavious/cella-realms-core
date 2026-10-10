@@ -23,7 +23,7 @@ test("recovery and version failures consume no RNG", () => {
 test("rewards preserve range, drop, quality, durability, and wear intent contracts", () => {
   const encounter = require("@cella/realms-content").getVeyraEncounter("mossback_grazer");
   const reward = core.createHuntReward({ encounter, rng: sequence([0, 0, 0, 0, 0, 0, 0]) });
-  assert.equal(reward.xp, 40); assert.equal(reward.credits, 20); assert.equal(reward.scrap, 2); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.durability_current, 70);
+  assert.equal(reward.xp, 44); assert.equal(reward.credits, 20); assert.equal(reward.scrap, 2); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.durability_current, 70);
   assert.deepEqual(core.deriveDurabilityWearIntent({ action: { type: "basic_attack" }, result: { state: {}, enemyAttack: { hit: true } } }), { weapon: 1, armor: true });
 });
 test("threshold table decisions consume one RNG value each", () => {
@@ -46,6 +46,17 @@ test("reward RNG order is stable for no-drop and durable-equipment outcomes", ()
   assert.equal(core.createHuntReward({ encounter, rng: noDrop.rng }).loot, null); assert.equal(noDrop.calls(), 4);
   const dropped = countingSequence([0, 0, 0, 0, 0, 0, 0, 0]);
   const reward = core.createHuntReward({ encounter, rng: dropped.rng }); assert.equal(reward.loot.item_key, "veyra_verdant_edge"); assert.equal(reward.loot.quality, "poor"); assert.equal(reward.loot.durability_current, 70); assert.equal(dropped.calls(), 8);
+});
+test("defeat Hunt XP uses only one victory-XP roll and never creates other rewards", () => {
+  const content = require("@cella/realms-content");
+  const expectations = { mossback_grazer: [11, 26], briar_matron: [24, 34], old_ironroot: [31, 42], warder_khelt: [38, 51] };
+  for (const [key, [minimum, maximum]] of Object.entries(expectations)) {
+    const encounter = content.getVeyraEncounter(key);
+    const low = countingSequence([0]); const high = countingSequence([.999999]);
+    assert.equal(core.createHuntDefeatXp({ encounter, rng: low.rng }), minimum); assert.equal(low.calls(), 1);
+    assert.equal(core.createHuntDefeatXp({ encounter, rng: high.rng }), maximum); assert.equal(high.calls(), 1);
+  }
+  assert.throws(() => core.createHuntDefeatXp({ encounter: null, rng: () => 0 }));
 });
 test("the raw combat-start model derives V2 data without pre-derived fields", () => {
   const raw = { profile: { realm_level: 1, build_revision: 0 }, runtimeContent: { equipmentCombatEnabled: true, contentVersion: 2, contentKey: "phase4b_veyra_balance_v1", contentHash: "b28ec2891e3a045225f7ef5a580bf3c067516458973724ce7aee9850cc3efaf8" }, equipment: [], templates: [{ item_key: "veyra_verdant_edge" }] };
