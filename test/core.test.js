@@ -4,11 +4,18 @@ const test = require("node:test");
 const core = require("..");
 function sequence(values) { let index = 0; return () => values[index++] ?? 0; }
 function countingSequence(values) { let index = 0; return { rng: () => { const value = values[index]; index++; return value; }, calls: () => index }; }
-test("base stats, Training Sword, and the 8% miniboss boundary preserve Hunt parity", () => {
+test("base stats, Training Sword, and the supplied miniboss boundary preserve Hunt parity", () => {
   assert.deepEqual(core.calculateBaseStats(1), { hp: 100, power: 10, defense: 8, crit_chance: 5, crit_damage: 150, accuracy: 0, dodge: 5, lifesteal: 0, resistance: 0, potency: 0, luck: 0 });
   assert.equal(core.buildPlayerCombatSnapshot({ realm_level: 1 }).weapon.displayName, "Training Sword");
-  assert.equal(core.selectVeyraEncounter(1, sequence([.0799, 0])).encounterType, "miniboss");
-  assert.equal(core.selectVeyraEncounter(1, sequence([.08, 0])).key, "mossback_grazer");
+  assert.equal(core.selectVeyraEncounter(1, sequence([.109999, 0]), { minibossChance: .11 }).encounterType, "miniboss");
+  assert.equal(core.selectVeyraEncounter(1, sequence([.11, 0]), { minibossChance: .11 }).key, "mossback_grazer");
+});
+test("MBA encounter boundaries use exactly two RNG rolls and cap at 50%", () => {
+  for (const [chance, below] of [[.11, .109999], [.19, .189999], [.26, .259999], [.39, .389999], [.50, .499999]]) {
+    const miniboss = countingSequence([below, 0]); assert.equal(core.selectVeyraEncounter(1, miniboss.rng, { minibossChance: chance }).encounterType, "miniboss"); assert.equal(miniboss.calls(), 2);
+    const normal = countingSequence([chance, 0]); assert.equal(core.selectVeyraEncounter(1, normal.rng, { minibossChance: chance }).encounterType, "normal"); assert.equal(normal.calls(), 2);
+  }
+  assert.throws(() => core.selectVeyraEncounter(1, () => 0, { minibossChance: .500001 }), /0.50/);
 });
 test("Basic Attack orders player then enemy and never counterattacks after victory", () => {
   const state = core.createSoloHuntState({ combatId: "c", guildId: "g", playerId: "u", player: { level: 100 }, weapon: core.TRAINING_SWORD, encounterKey: "mossback_grazer", createdAt: 0 });
