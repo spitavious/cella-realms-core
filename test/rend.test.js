@@ -23,7 +23,7 @@ test("Rend eligibility comes only from the frozen V3 Reaver skill snapshot", () 
   assert.equal(valid.events[0].metadata.skillKey, "rend");
   const v2 = core.createSoloHuntState({ combatId: "v2", guildId: "guild", playerId: "user", player: { level: 5 }, weapon: core.TRAINING_SWORD, buildSnapshot: { buildSnapshotVersion: 2 }, encounterKey: "mossback_grazer", createdAt: 0 });
   assert.throws(() => core.resolveCombatAction({ state: v2, action: { type: "skill", skillKey: "rend" }, nowMs: 0, expectedVersion: 1, rng: () => 0 }), (error) => error.code === "COMBAT_SKILL_UNAVAILABLE");
-  assert.throws(() => core.resolveCombatAction({ state: reaverState(), action: { type: "skill", skillKey: "breach" }, nowMs: 0, expectedVersion: 1, rng: () => 0 }), (error) => error.code === "COMBAT_INVALID_ACTION");
+  assert.throws(() => core.resolveCombatAction({ state: reaverState(), action: { type: "skill", skillKey: "breach" }, nowMs: 0, expectedVersion: 1, rng: () => 0 }), (error) => error.code === "COMBAT_SKILL_UNAVAILABLE");
 });
 
 test("Rend uses the shared direct-damage pipeline at its exact base and finishing multipliers", () => {
